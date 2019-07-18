@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
 from moviepy.config import get_setting
-from moviepy.compat import PY3, DEVNULL
+from moviepy.compat import DEVNULL
 import os
 
 
@@ -61,7 +61,6 @@ class FFMPEG_AudioReader:
         self.buffer= None
         self.buffer_startframe = 1
         self.initialize()
-        self.buffer_around(1)
 
     def initialize(self, starttime = 0):
         """ Opens the file, creates the pipe. """
@@ -96,10 +95,12 @@ class FFMPEG_AudioReader:
 
         self.pos = np.round(self.fps*starttime)
 
+        self.buffer_around(1)
+
 
 
     def skip_chunk(self,chunksize):
-        s = self.proc.stdout.read(self.nchannels*chunksize*self.nbytes)
+        _ = self.proc.stdout.read(self.nchannels*chunksize*self.nbytes)
         self.proc.stdout.flush()
         self.pos = self.pos+chunksize
 
@@ -109,6 +110,7 @@ class FFMPEG_AudioReader:
         # chunksize is not being autoconverted from float to int
         chunksize = int(round(chunksize))
         L = self.nchannels*chunksize*self.nbytes
+
         s = self.proc.stdout.read(L)
         dt = {1: 'int8',2:'int16',4:'int32'}[self.nbytes]
         if hasattr(np, 'frombuffer'):
@@ -142,18 +144,22 @@ class FFMPEG_AudioReader:
         self.pos = pos
 
 
-
     def close_proc(self):
         if hasattr(self, 'proc') and self.proc is not None:
+            print("CLOSING!")
             self.proc.terminate()
             for std in [ self.proc.stdout,
                          self.proc.stderr]:
                 std.close()
             self.proc = None
+            self.buffer= None
+            self.buffer_startframe = 1
 
     def get_frame(self, tt):
 
-        buffersize = self.buffersize
+        if not self.proc:
+            self.initialize()
+
         if isinstance(tt,np.ndarray):
             # lazy implementation, but should not cause problems in
             # 99.99 %  of the cases
