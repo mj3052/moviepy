@@ -444,7 +444,7 @@ class Clip:
     @requires_duration
     @use_clip_fps_by_default
     def iter_frames(
-        self, fps=None, with_times=False, logger=None, dtype=None, threads=4
+        self, fps=None, with_times=False, logger=None, dtype=None, threads=None
     ):
         """ Iterates over all the frames of the clip.
 
@@ -483,7 +483,7 @@ class Clip:
                 return frame
 
         if threads:
-            with ThreadPoolExecutor(4) as worker:
+            with ThreadPoolExecutor(threads) as worker:
                 for t, frame in zip(times, worker.map(self.get_frame, times)):
                     next(logger_it)
                     yield frame_callback(frame)
