@@ -5,6 +5,7 @@ and AudioClip.
 """
 
 from copy import copy
+import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -17,7 +18,6 @@ from moviepy.decorators import (
     convert_to_seconds,
     use_clip_fps_by_default,
 )
-from tqdm import tqdm
 import proglog
 
 
@@ -471,7 +471,12 @@ class Clip:
                      for frame in myclip.iter_frames()])
         """
         logger = proglog.default_bar_logger(logger)
-        times = np.arange(0, self.duration, 1.0 / fps)
+
+        frame_count = self.duration * fps
+        step = 1.0 / fps
+        remainder = (self.duration - (step * (frame_count - 1))) / frame_count
+        times = np.arange(0, self.duration, step + remainder)
+
         logger_it = iter(logger.iter_bar(t=times))
 
         def frame_callback(frame):
@@ -481,6 +486,9 @@ class Clip:
                 return t, frame
             else:
                 return frame
+
+        if threads == -1:
+            threads = multiprocessing.cpu_count()
 
         if threads:
             with ThreadPoolExecutor(threads) as worker:
