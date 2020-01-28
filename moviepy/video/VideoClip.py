@@ -674,8 +674,10 @@ class VideoClip(Clip):
             mask = ColorClip(self.size, 1.0, ismask=True)
             return self.set_mask(mask.set_duration(self.duration))
         else:
-            make_frame = lambda t: np.ones(self.get_frame(t).shape[:2], dtype=float)
-            mask = VideoClip(ismask=True, make_frame=make_frame)
+            mask = VideoClip(
+                ismask=True,
+                make_frame=lambda t: np.ones(self.get_frame(t).shape[:2], dtype=float),
+            )
             return self.set_mask(mask.set_duration(self.duration))
 
     def on_color(self, size=None, color=(0, 0, 0), pos=None, col_opacity=None):
@@ -883,10 +885,9 @@ class DataVideoClip(VideoClip):
         self.data = data
         self.data_to_frame = data_to_frame
         self.fps = fps
-        make_frame = lambda t: self.data_to_frame(self.data[int(self.fps * t)])
-        VideoClip.__init__(
+        super().__init__(
             self,
-            make_frame,
+            make_frame=lambda t: self.data_to_frame(self.data[int(self.fps * t)]),
             ismask=ismask,
             duration=1.0 * len(data) / fps,
             has_constant_size=has_constant_size,

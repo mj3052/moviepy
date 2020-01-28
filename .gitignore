@@ -62,3 +62,6 @@ docs/build/
 
 # Mypy
 .mypy_cache/
+
+# Pytest
+.pytest_cache/
