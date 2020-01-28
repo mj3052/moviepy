@@ -4,6 +4,43 @@ methods that are difficult to do with the existing Python libraries.
 """
 
 import numpy as np
+from numba import jit
+
+
+@jit(nopython=True, nogil=False, parallel=True, cache=True)
+def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
+    blitted = im1[y1:y2, x1:x2]
+    new_im2 = +im2
+
+    if mask is None:
+        new_im2[yp1:yp2, xp1:xp2] = blitted
+        return new_im2
+
+    mask = mask[y1:y2, x1:x2]
+    blit_region = new_im2[yp1:yp2, xp1:xp2]
+
+    for layer in range(3):
+        new_im2[yp1:yp2, xp1:xp2, layer] = (
+            1.0 * mask * blitted[..., layer] + (1.0 - mask) * blit_region[..., layer]
+        )
+
+    return new_im2
+
+
+@jit(nopython=True, nogil=False, parallel=True, cache=True)
+def _blit2d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
+    blitted = im1[y1:y2, x1:x2]
+    new_im2 = +im2
+
+    if mask is None:
+        new_im2[yp1:yp2, xp1:xp2] = blitted
+        return new_im2
+
+    mask = mask[y1:y2, x1:x2]
+    blit_region = new_im2[yp1:yp2, xp1:xp2]
+    new_im2[yp1:yp2, xp1:xp2] = 1.0 * mask * blitted + (1.0 - mask) * blit_region
+
+    return new_im2
 
 
 def blit(im1, im2, pos=None, mask=None, ismask=False):
@@ -33,20 +70,12 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
     if (xp1 >= xp2) or (yp1 >= yp2):
         return im2
 
-    blitted = im1[y1:y2, x1:x2]
-
-    new_im2 = +im2
-
-    if mask is not None:
-        mask = mask[y1:y2, x1:x2]
-        if len(im1.shape) == 3:
-            mask = np.dstack(3 * [mask])
-        blit_region = new_im2[yp1:yp2, xp1:xp2]
-        new_im2[yp1:yp2, xp1:xp2] = 1.0 * mask * blitted + (1.0 - mask) * blit_region
+    if len(im1.shape) == 3:
+        im = _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2)
     else:
-        new_im2[yp1:yp2, xp1:xp2] = blitted
+        im = _blit2d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2)
 
-    return new_im2.astype("uint8") if (not ismask) else new_im2
+    return im if ismask else im.astype(np.uint8)
 
 
 def color_gradient(
