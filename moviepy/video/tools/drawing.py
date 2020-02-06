@@ -19,9 +19,12 @@ def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
     mask = mask[y1:y2, x1:x2]
     blit_region = new_im2[yp1:yp2, xp1:xp2]
 
+    float_mask = mask.astype(np.float32)
+
     for layer in range(3):
         new_im2[yp1:yp2, xp1:xp2, layer] = (
-            1.0 * mask * blitted[..., layer] + (1.0 - mask) * blit_region[..., layer]
+            1.0 * float_mask * blitted[..., layer]
+            + (1.0 - float_mask) * blit_region[..., layer]
         )
 
     return new_im2
@@ -69,6 +72,11 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
 
     if (xp1 >= xp2) or (yp1 >= yp2):
         return im2
+
+    # print(mask.shape)
+    # print(im1.shape)
+    # print(im2.shape)
+    # print(ismask)
 
     if len(im1.shape) == 3:
         im = _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2)
