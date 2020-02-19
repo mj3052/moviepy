@@ -7,43 +7,56 @@ import numpy as np
 from numba import jit
 
 
-@jit(nopython=True, nogil=False, parallel=True, cache=True)
+@jit(nopython=True, nogil=False, parallel=True, cache=True, fastmath=True)
 def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
-    blitted = im1[y1:y2, x1:x2]
-    new_im2 = +im2
-
-    if mask is None:
-        new_im2[yp1:yp2, xp1:xp2] = blitted
-        return new_im2
-
     mask = mask[y1:y2, x1:x2]
-    blit_region = new_im2[yp1:yp2, xp1:xp2]
-
-    float_mask = mask.astype(np.float32)
 
     for layer in range(3):
-        new_im2[yp1:yp2, xp1:xp2, layer] = (
-            1.0 * float_mask * blitted[..., layer]
-            + (1.0 - float_mask) * blit_region[..., layer]
+        im2[yp1:yp2, xp1:xp2, layer] = (
+            mask * im1[y1:y2, x1:x2, layer]
+            + (1.0 - mask) * im2[yp1:yp2, xp1:xp2, layer]
         )
 
-    return new_im2
+    return im2
+
+# @jit(nopython=True, nogil=False, parallel=True, cache=True)
+# def _blit3d_chunked(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
+#     mask = mask[y1:y2, x1:x2]
+#     blitted = im1[y1:y2, x1:x2]
+#     blit_region = im2[yp1:yp2, xp1:xp2]
+
+#     chunksize = 16
+#     arbit = 783 - chunksize
+
+
+
+#     for x in range(0, min(xp2, x2)-chunksize, chunksize):
+#         for layer in range(3):
+#             im2[y1:y2, x:x+chunksize, layer] = (
+#             mask * blitted[..., layer]
+#             + (1.0 - mask[y1:y2, x:x+chunksize]) * blit_region[y1:y2, x:x+chunksize, layer]
+#         )
+
+
+#     # for x in range(0, arbit, chunksize):
+#     #     for y in range(0, arbit, chunksize):
+#     #         for layer in range(3):
+#     #             im2[yp1:yp2, xp1:xp2, layer][x:x+chunksize,y:y+chunksize] = (
+#     #                 mask[x:x+chunksize,y:y+chunksize] * blitted[..., layer][x:x+chunksize,y:y+chunksize]
+#     #                 + (1.0 - mask[x:x+chunksize,y:y+chunksize]) * blit_region[..., layer][x:x+chunksize,y:y+chunksize]
+#     #             )
+
+#     return im2
 
 
 @jit(nopython=True, nogil=False, parallel=True, cache=True)
 def _blit2d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
-    blitted = im1[y1:y2, x1:x2]
-    new_im2 = +im2
-
-    if mask is None:
-        new_im2[yp1:yp2, xp1:xp2] = blitted
-        return new_im2
-
     mask = mask[y1:y2, x1:x2]
-    blit_region = new_im2[yp1:yp2, xp1:xp2]
-    new_im2[yp1:yp2, xp1:xp2] = 1.0 * mask * blitted + (1.0 - mask) * blit_region
+    blit_region = im2[yp1:yp2, xp1:xp2]
+    blitted = im1[y1:y2, x1:x2]
+    im2[yp1:yp2, xp1:xp2] = mask * blitted + (1.0 - mask) * blit_region
 
-    return new_im2
+    return im2
 
 
 def blit(im1, im2, pos=None, mask=None, ismask=False):
@@ -56,29 +69,30 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
     if pos is None:
         pos = [0, 0]
 
-    # xp1,yp1,xp2,yp2 = blit area on im2
-    # x1,y1,x2,y2 = area of im1 to blit on im2
-    xp, yp = pos
-    x1 = max(0, -xp)
-    y1 = max(0, -yp)
-    h1, w1 = im1.shape[:2]
-    h2, w2 = im2.shape[:2]
-    xp2 = min(w2, xp + w1)
-    yp2 = min(h2, yp + h1)
-    x2 = min(w1, w2 - xp)
-    y2 = min(h1, h2 - yp)
-    xp1 = max(0, xp)
-    yp1 = max(0, yp)
+    xp, yp  = pos
+    x1      = max(0, -xp)
+    y1      = max(0, -yp)
+    h1, w1  = im1.shape[:2]
+    h2, w2  = im2.shape[:2]
+    xp2     = min(w2, xp + w1)
+    yp2     = min(h2, yp + h1)
+    x2      = min(w1, w2 - xp)
+    y2      = min(h1, h2 - yp)
+    xp1     = max(0, xp)
+    yp1     = max(0, yp)
 
     if (xp1 >= xp2) or (yp1 >= yp2):
         return im2
 
-    # print(mask.shape)
-    # print(im1.shape)
-    # print(im2.shape)
-    # print(ismask)
+    im2 = +im2
 
-    if len(im1.shape) == 3:
+    if mask is None:
+        im2[yp1:yp2, xp1:xp2] = im1[y1:y2, x1:x2]
+        return im2
+    else:
+        mask.astype(np.float32)
+
+    if len(im1.shape) == 3 and len(im1.shape) == 3:
         im = _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2)
     else:
         im = _blit2d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2)
@@ -212,7 +226,6 @@ def color_gradient(
             arr = np.dstack(3 * [arr])
         return (1 - arr) * col1 + arr * col2
 
-
 def color_split(
     size, x=None, y=None, p1=None, p2=None, vector=None, col1=0, col2=1.0, grad_width=0
 ):
@@ -296,7 +309,6 @@ def color_split(
     # if we are here, it means we didn't exit with a proper 'return'
     print("Arguments in color_split not understood !")
     raise
-
 
 def circle(screensize, center, radius, col1=1.0, col2=0, blur=1):
     """ Draw an image with a circle.
