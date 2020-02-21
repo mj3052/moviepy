@@ -10,6 +10,7 @@ from numba import jit
 @jit(nopython=True, nogil=False, parallel=True, cache=True, fastmath=True)
 def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
     mask = mask[y1:y2, x1:x2]
+    print(shape(im2))
 
     for layer in range(3):
         im2[yp1:yp2, xp1:xp2, layer] = (
