@@ -10,7 +10,6 @@ from numba import jit
 @jit(nopython=True, nogil=False, parallel=True, cache=True, fastmath=True)
 def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
     mask = mask[y1:y2, x1:x2]
-    print(shape(im2))
 
     for layer in range(3):
         im2[yp1:yp2, xp1:xp2, layer] = (
@@ -19,35 +18,6 @@ def _blit3d(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
         )
 
     return im2
-
-# @jit(nopython=True, nogil=False, parallel=True, cache=True)
-# def _blit3d_chunked(im1, im2, mask, xp1, xp2, yp1, yp2, x1, x2, y1, y2):
-#     mask = mask[y1:y2, x1:x2]
-#     blitted = im1[y1:y2, x1:x2]
-#     blit_region = im2[yp1:yp2, xp1:xp2]
-
-#     chunksize = 16
-#     arbit = 783 - chunksize
-
-
-
-#     for x in range(0, min(xp2, x2)-chunksize, chunksize):
-#         for layer in range(3):
-#             im2[y1:y2, x:x+chunksize, layer] = (
-#             mask * blitted[..., layer]
-#             + (1.0 - mask[y1:y2, x:x+chunksize]) * blit_region[y1:y2, x:x+chunksize, layer]
-#         )
-
-
-#     # for x in range(0, arbit, chunksize):
-#     #     for y in range(0, arbit, chunksize):
-#     #         for layer in range(3):
-#     #             im2[yp1:yp2, xp1:xp2, layer][x:x+chunksize,y:y+chunksize] = (
-#     #                 mask[x:x+chunksize,y:y+chunksize] * blitted[..., layer][x:x+chunksize,y:y+chunksize]
-#     #                 + (1.0 - mask[x:x+chunksize,y:y+chunksize]) * blit_region[..., layer][x:x+chunksize,y:y+chunksize]
-#     #             )
-
-#     return im2
 
 
 @jit(nopython=True, nogil=False, parallel=True, cache=True)
@@ -70,17 +40,17 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
     if pos is None:
         pos = [0, 0]
 
-    xp, yp  = pos
-    x1      = max(0, -xp)
-    y1      = max(0, -yp)
-    h1, w1  = im1.shape[:2]
-    h2, w2  = im2.shape[:2]
-    xp2     = min(w2, xp + w1)
-    yp2     = min(h2, yp + h1)
-    x2      = min(w1, w2 - xp)
-    y2      = min(h1, h2 - yp)
-    xp1     = max(0, xp)
-    yp1     = max(0, yp)
+    xp, yp = pos
+    x1 = max(0, -xp)
+    y1 = max(0, -yp)
+    h1, w1 = im1.shape[:2]
+    h2, w2 = im2.shape[:2]
+    xp2 = min(w2, xp + w1)
+    yp2 = min(h2, yp + h1)
+    x2 = min(w1, w2 - xp)
+    y2 = min(h1, h2 - yp)
+    xp1 = max(0, xp)
+    yp1 = max(0, yp)
 
     if (xp1 >= xp2) or (yp1 >= yp2):
         return im2
@@ -227,6 +197,7 @@ def color_gradient(
             arr = np.dstack(3 * [arr])
         return (1 - arr) * col1 + arr * col2
 
+
 def color_split(
     size, x=None, y=None, p1=None, p2=None, vector=None, col1=0, col2=1.0, grad_width=0
 ):
@@ -310,6 +281,7 @@ def color_split(
     # if we are here, it means we didn't exit with a proper 'return'
     print("Arguments in color_split not understood !")
     raise
+
 
 def circle(screensize, center, radius, col1=1.0, col2=0, blur=1):
     """ Draw an image with a circle.
