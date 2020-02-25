@@ -1010,6 +1010,7 @@ class ImageClip(VideoClip):
         self.make_frame = lambda t: img
         self.size = img.shape[:2][::-1]
         self.img = img
+        self.original_img = img
 
     def fl(self, fl, apply_to=None, keep_duration=True):
         """General transformation filter.

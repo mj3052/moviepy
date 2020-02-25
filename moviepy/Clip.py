@@ -490,6 +490,7 @@ class Clip:
         if threads == -1:
             threads = multiprocessing.cpu_count()
 
+        threads = None
         if threads:
             with ThreadPoolExecutor(threads) as worker:
                 for t, frame in zip(times, worker.map(self.get_frame, times)):
