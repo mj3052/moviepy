@@ -361,5 +361,23 @@ def write_gif_with_image_io(
     logger(message="MoviePy - Building file %s with imageio." % filename)
 
     for frame in clip.iter_frames(fps=fps, logger=logger, dtype="uint8"):
-
         writer.append_data(frame)
+
+    # Optimize file here
+    cmd3 = (
+        [
+            "convert",
+            filename,
+            "-layers",
+            "optimize-plus",
+            "-fuzz",
+            "1%",
+            filename
+        ]
+    )
+
+    popen_params = {"stdout": DEVNULL, "stderr": DEVNULL, "stdin": DEVNULL}
+    # popen_params["stdin"] = proc2.stdout
+    popen_params["stdout"] = DEVNULL
+    proc3 = sp.Popen(cmd3,**popen_params)
+    proc3.wait()
