@@ -337,7 +337,6 @@ def write_gif_with_image_io(
     Parameters
     -----------
     opt
-
     """
 
     if colors is None:
@@ -356,43 +355,32 @@ def write_gif_with_image_io(
     quantizer = 0 if opt != 0 else "nq"
 
     writer = imageio.save(
-        "temp.gif", duration=1.0 / fps, quantizer=quantizer, palettesize=colors, loop=loop
+        "temp.gif",
+        duration=1.0 / fps,
+        quantizer=quantizer,
+        palettesize=colors,
+        loop=loop,
     )
     logger(message="MoviePy - Building file %s with imageio." % filename)
 
     for frame in clip.iter_frames(fps=fps, logger=logger, dtype="uint8"):
         writer.append_data(frame)
 
-    # Optimize file here
-    #     cmd3 = (
-    #     [
-    #         # "convert",
-    #         get_setting("IMAGEMAGICK_BINARY"),
-    #         filename,
-    #         "-layers",
-    #         "optimize-plus",
-    #         "-fuzz",
-    #         "1%",
-    #         filename
-    #     ]
-    # )
-    cmd3 = (
-        [
-            # "convert",
-            get_setting("IMAGEMAGICK_BINARY"),
-            "temp.gif",
-            "-layers",
-            "optimize-plus",
-            "-fuzz",
-            "1%",
-            filename
-        ]
-    )
+    cmd = [
+        get_setting("IMAGEMAGICK_BINARY"),
+        "temp.gif",
+        "-layers",
+        "optimize-plus",
+        "-fuzz",
+        "1%",
+        filename,
+    ]
 
-    popen_params = {"stdout": DEVNULL, "stderr": DEVNULL, "stdin": DEVNULL}
-    # popen_params["stdin"] = proc2.stdout
-    popen_params["stdout"] = DEVNULL
-    proc3 = sp.Popen(cmd3,**popen_params)
-    print("we used cmd3",cmd3)
-    proc3.wait()
+    # Open process
+    proc = sp.Popen(cmd, **{"stdout": DEVNULL, "stderr": DEVNULL, "stdin": DEVNULL})
+
+    # Wait for completion
+    proc.wait()
+
+    # Delete temp
     os.remove("temp.gif")
