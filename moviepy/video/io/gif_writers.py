@@ -377,7 +377,7 @@ def write_gif_with_image_io(
     ]
 
     # Open process
-    proc = sp.Popen(cmd, **{"stdout": DEVNULL, "stderr": DEVNULL, "stdin": DEVNULL})
+    proc = sp.Popen(cmd)
 
     # Wait for completion
     proc.wait()
