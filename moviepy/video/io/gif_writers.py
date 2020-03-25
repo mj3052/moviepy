@@ -356,7 +356,7 @@ def write_gif_with_image_io(
     quantizer = 0 if opt != 0 else "nq"
 
     writer = imageio.save(
-        filename, duration=1.0 / fps, quantizer=quantizer, palettesize=colors, loop=loop
+        "temp.gif", duration=1.0 / fps, quantizer=quantizer, palettesize=colors, loop=loop
     )
     logger(message="MoviePy - Building file %s with imageio." % filename)
 
@@ -364,10 +364,23 @@ def write_gif_with_image_io(
         writer.append_data(frame)
 
     # Optimize file here
+    #     cmd3 = (
+    #     [
+    #         # "convert",
+    #         get_setting("IMAGEMAGICK_BINARY"),
+    #         filename,
+    #         "-layers",
+    #         "optimize-plus",
+    #         "-fuzz",
+    #         "1%",
+    #         filename
+    #     ]
+    # )
     cmd3 = (
         [
-            "convert",
-            filename,
+            # "convert",
+            get_setting("IMAGEMAGICK_BINARY"),
+            "temp.gif",
             "-layers",
             "optimize-plus",
             "-fuzz",
@@ -380,4 +393,6 @@ def write_gif_with_image_io(
     # popen_params["stdin"] = proc2.stdout
     popen_params["stdout"] = DEVNULL
     proc3 = sp.Popen(cmd3,**popen_params)
+    print("we used cmd3",cmd3)
     proc3.wait()
+    os.remove("temp.gif")
