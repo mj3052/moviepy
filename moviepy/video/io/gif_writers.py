@@ -366,15 +366,28 @@ def write_gif_with_image_io(
     for frame in clip.iter_frames(fps=fps, logger=logger, dtype="uint8"):
         writer.append_data(frame)
 
+    # gifsicle --lossy=80 --colors 256 -O3 bn.gif -o bn-opt.gif
+
     cmd = [
-        get_setting("IMAGEMAGICK_BINARY"),
+        "gifsicle",
+        "--lossy=80",
+        "--colors",
+        "256",
+        "-O3",
         "temp.gif",
-        "-layers",
-        "optimize-plus",
-        "-fuzz",
-        "1%",
+        "-o",
         filename,
     ]
+
+    # cmd = [
+    #     get_setting("IMAGEMAGICK_BINARY"),
+    #     "temp.gif",
+    #     "-layers",
+    #     "optimize-plus",
+    #     "-fuzz",
+    #     "1%",
+    #     filename,
+    # ]
 
     # Open process
     proc = sp.Popen(cmd)
