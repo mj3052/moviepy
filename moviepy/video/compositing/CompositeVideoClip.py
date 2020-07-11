@@ -45,7 +45,15 @@ class CompositeVideoClip(VideoClip):
 
     """
 
-    def __init__(self, clips, size=None, bg_color=None, use_bgclip=False, ismask=False):
+    def __init__(
+        self,
+        clips,
+        size=None,
+        bg_color=None,
+        use_bgclip=False,
+        ismask=False,
+        allow_no_bg=False,
+    ):
 
         if size is None:
             size = clips[0].size
@@ -71,12 +79,16 @@ class CompositeVideoClip(VideoClip):
         self.clips = clips
         self.bg_color = bg_color
 
+        self.created_bg = False
         if use_bgclip:
             self.bg = clips[0]
             self.clips = clips[1:]
-            self.created_bg = False
-        else:
+        elif allow_no_bg:
+            # In some cases if we are rendering images,
+            # we allow no bottom BG
             self.clips = clips
+            self.bg = None
+        else:
             self.bg = ColorClip(size, color=self.bg_color)
             self.created_bg = True
 
@@ -109,9 +121,13 @@ class CompositeVideoClip(VideoClip):
             """ The clips playing at time `t` are blitted over one
                 another. """
 
-            f = self.bg.get_frame(t)
+            f = None if self.bg is None else self.bg.get_frame(t)
+
             for c in self.playing_clips(t):
-                f = c.blit_on(f, t)
+                if f is None:
+                    f = c.get_frame(t)
+                else:
+                    f = c.blit_on(f, t)
             return f
 
         self.make_frame = make_frame
